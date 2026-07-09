@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ReactNode } from "react";
 import type { CustomerRow } from "@/lib/csv/types";
 import {
@@ -5,6 +8,7 @@ import {
   getCsmPerformance,
   getCustomerHealthRows,
   getSummaryMetrics,
+  getCustomerMrrByMonth,
 } from "@/lib/insights/aggregate";
 import { RevenueOverTimeChart } from "./RevenueOverTimeChart";
 import { CsmPerformanceTable } from "./CsmPerformanceTable";
@@ -28,10 +32,27 @@ interface InsightsViewProps {
 }
 
 export function InsightsView({ rows, actions }: InsightsViewProps) {
+  const [selectedCompanyName, setSelectedCompanyName] = useState<
+    string | null
+  >(null);
+
   const mrrByMonth = getMrrByMonth(rows);
   const csmPerformance = getCsmPerformance(rows);
   const healthRows = getCustomerHealthRows(rows);
   const summary = getSummaryMetrics(rows);
+
+  const selectedRow = selectedCompanyName
+    ? (rows.find((r) => r.company_name === selectedCompanyName) ?? null)
+    : null;
+  const customerSeries = selectedRow
+    ? getCustomerMrrByMonth(selectedRow, rows)
+    : null;
+
+  function handleSelectCustomer(companyName: string) {
+    setSelectedCompanyName((current) =>
+      current === companyName ? null : companyName
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,9 +76,18 @@ export function InsightsView({ rows, actions }: InsightsViewProps) {
         <MetricCard label="Avg NPS" value={summary.avgNps.toString()} />
       </div>
 
-      <RevenueOverTimeChart data={mrrByMonth} />
+      <RevenueOverTimeChart
+        data={mrrByMonth}
+        selectedCustomerName={selectedRow?.company_name}
+        customerSeries={customerSeries}
+        onClearSelection={() => setSelectedCompanyName(null)}
+      />
       <CsmPerformanceTable data={csmPerformance} />
-      <CustomerHealthTable data={healthRows} />
+      <CustomerHealthTable
+        data={healthRows}
+        selectedCompanyName={selectedCompanyName}
+        onSelectCustomer={handleSelectCustomer}
+      />
     </div>
   );
 }

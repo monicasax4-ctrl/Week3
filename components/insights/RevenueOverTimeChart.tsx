@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import type { MrrByMonth } from "@/lib/insights/aggregate";
+import type { MrrByMonth, CustomerMrrPoint } from "@/lib/insights/aggregate";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -28,17 +28,41 @@ function formatMonthLabel(month: string): string {
   });
 }
 
-export function RevenueOverTimeChart({ data }: { data: MrrByMonth[] }) {
-  const chartData = data.map((d) => ({
+interface RevenueOverTimeChartProps {
+  data: MrrByMonth[];
+  selectedCustomerName?: string | null;
+  customerSeries?: CustomerMrrPoint[] | null;
+  onClearSelection?: () => void;
+}
+
+export function RevenueOverTimeChart({
+  data,
+  selectedCustomerName,
+  customerSeries,
+  onClearSelection,
+}: RevenueOverTimeChartProps) {
+  const chartData = data.map((d, i) => ({
     ...d,
     label: formatMonthLabel(d.month),
+    customerMrr: customerSeries?.[i]?.customerMrr,
   }));
 
   return (
     <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
-      <h3 className="mb-4 text-sm font-medium text-[var(--text-primary)]">
-        Revenue over time
-      </h3>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-medium text-[var(--text-primary)]">
+          Revenue over time
+        </h3>
+        {selectedCustomerName && (
+          <button
+            onClick={onClearSelection}
+            className="flex items-center gap-1 rounded-[var(--radius)] bg-[var(--surface-1)] px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          >
+            Comparing: {selectedCustomerName}
+            <span aria-hidden="true">×</span>
+          </button>
+        )}
+      </div>
       <div style={{ position: "relative", width: "100%", height: 280 }}>
         <ResponsiveContainer>
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
@@ -93,6 +117,17 @@ export function RevenueOverTimeChart({ data }: { data: MrrByMonth[] }) {
               dot={false}
               activeDot={{ r: 4 }}
             />
+            {selectedCustomerName && (
+              <Line
+                type="monotone"
+                dataKey="customerMrr"
+                name={selectedCustomerName}
+                stroke="var(--series-3)"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>

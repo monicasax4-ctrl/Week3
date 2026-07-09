@@ -33,7 +33,17 @@ function statusClasses(status: string): string {
   return "bg-[var(--surface-1)] text-[var(--text-secondary)]";
 }
 
-export function CustomerHealthTable({ data }: { data: CustomerHealthRow[] }) {
+interface CustomerHealthTableProps {
+  data: CustomerHealthRow[];
+  selectedCompanyName?: string | null;
+  onSelectCustomer?: (companyName: string) => void;
+}
+
+export function CustomerHealthTable({
+  data,
+  selectedCompanyName,
+  onSelectCustomer,
+}: CustomerHealthTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("mrr");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -62,9 +72,14 @@ export function CustomerHealthTable({ data }: { data: CustomerHealthRow[] }) {
 
   return (
     <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
-      <h3 className="mb-4 text-sm font-medium text-[var(--text-primary)]">
-        Customer health
-      </h3>
+      <div className="mb-4">
+        <h3 className="text-sm font-medium text-[var(--text-primary)]">
+          Customer health
+        </h3>
+        <p className="text-xs text-[var(--text-muted)]">
+          Click a company name to compare its MRR on the chart above.
+        </p>
+      </div>
       <div className="max-h-[420px] overflow-auto">
         <table className="w-full text-left text-sm">
           <thead className="sticky top-0 bg-[var(--surface-2)]">
@@ -82,13 +97,26 @@ export function CustomerHealthTable({ data }: { data: CustomerHealthRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((row) => (
+            {sorted.map((row) => {
+              const isSelected = row.companyName === selectedCompanyName;
+              return (
               <tr
                 key={row.companyName}
-                className="border-b border-[var(--border)] last:border-0"
+                className={`border-b border-[var(--border)] last:border-0 ${
+                  isSelected ? "bg-[var(--bg-accent)]" : ""
+                }`}
               >
-                <td className="py-2 pr-4 text-[var(--text-primary)]">
-                  {row.companyName}
+                <td className="py-2 pr-4">
+                  <button
+                    onClick={() => onSelectCustomer?.(row.companyName)}
+                    className={`text-left hover:underline ${
+                      isSelected
+                        ? "font-medium text-[var(--text-accent)]"
+                        : "text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {row.companyName}
+                  </button>
                 </td>
                 <td className="py-2 pr-4">
                   <span
@@ -116,7 +144,8 @@ export function CustomerHealthTable({ data }: { data: CustomerHealthRow[] }) {
                   {row.csmName}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

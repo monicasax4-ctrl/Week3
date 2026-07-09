@@ -32,7 +32,7 @@ export interface MrrByMonth {
   activeMrr: number;
 }
 
-export function getMrrByMonth(rows: CustomerRow[]): MrrByMonth[] {
+function getMonthRange(rows: CustomerRow[]): string[] {
   const starts = rows
     .map((r) => toDate(r.start_date))
     .filter((d): d is Date => d !== null);
@@ -56,6 +56,12 @@ export function getMrrByMonth(rows: CustomerRow[]): MrrByMonth[] {
     months.push(cursor);
     cursor = nextMonthKey(cursor);
   }
+
+  return months;
+}
+
+export function getMrrByMonth(rows: CustomerRow[]): MrrByMonth[] {
+  const months = getMonthRange(rows);
 
   return months.map((month) => {
     const end = monthEnd(month);
@@ -81,6 +87,36 @@ export function getMrrByMonth(rows: CustomerRow[]): MrrByMonth[] {
     }
 
     return { month, newMrr, activeMrr };
+  });
+}
+
+export interface CustomerMrrPoint {
+  month: string;
+  customerMrr: number;
+}
+
+/**
+ * A single customer's MRR contribution per month, bucketed over the same
+ * month range as getMrrByMonth(allRows) so the two series plot on shared
+ * x-axis ticks. Value is the customer's MRR while active that month, 0
+ * otherwise (before start_date or after churn_date).
+ */
+export function getCustomerMrrByMonth(
+  row: CustomerRow,
+  allRows: CustomerRow[]
+): CustomerMrrPoint[] {
+  const months = getMonthRange(allRows);
+  const start = toDate(row.start_date);
+  const churn = row.churn_date ? toDate(row.churn_date) : null;
+
+  return months.map((month) => {
+    const end = monthEnd(month);
+    const startedByMonthEnd = start ? start.getTime() <= end.getTime() : false;
+    const stillActiveAtMonthEnd = !churn || churn.getTime() > end.getTime();
+    return {
+      month,
+      customerMrr: startedByMonthEnd && stillActiveAtMonthEnd ? row.mrr : 0,
+    };
   });
 }
 
